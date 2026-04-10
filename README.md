@@ -2,7 +2,7 @@
 
 x68pic は、シャープのレトロパソコン X68000 シリーズの標準画像フォーマット（.PIC）を Python で扱うためのライブラリです。
 
-# 特徴
+## 特徴
 
 - X68k 全モード対応: 16 / 256 / 32768 (15bit) / 65536 (16bit) 色のすべてをサポート。
 
@@ -10,8 +10,7 @@ x68pic は、シャープのレトロパソコン X68000 シリーズの標準�
 
 - エコシステム連携: numpy 配列を介して Pillow 等の主要ライブラリとシームレスに連携します。
 
-
-# インストール
+## インストール
 
 ```bash
 git clone https://github.com/yumimint/x68pic.git
@@ -22,14 +21,14 @@ pip install .
 または
 
 ```bash
-pip install git+https://github.com/yumimint/x68pic
+pip install git+https://github.com/yumimint/x68pic.git
 ```
 
 ※ 依存ライブラリ: numpy, pillow
 
-# 使い方
+## 使い方
 
-## PIC ファイルを読み込む (Decode)
+### PIC ファイルを読み込む (Decode)
 
 ```Python
 import x68pic
@@ -39,7 +38,7 @@ with open("input.pic", "rb") as f:
 img.save("output.png")
 ```
 
-## PICファイルを生成する (Encode)
+### PICファイルを生成する (Encode)
 
 ```Python
 import x68pic
@@ -52,7 +51,8 @@ with open("output.pic", "wb") as f:
     x68pic.encode(f, img, 15, dither=True)
 ```
 
-## OpenCVを使った簡易ビュアー
+### OpenCVを使った簡易ビュアー
+
 ```Python
 from pathlib import Path
 
@@ -87,10 +87,10 @@ for path in Path(".").rglob("*.pic"):
 cv2.destroyAllWindows()
 ```
 
-# ライセンス
+## ライセンス
 
 MIT License
 
-# 作者
+## 作者
 
 yumimint <i.yumimint@gmail.com>
