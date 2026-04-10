@@ -1,0 +1,30 @@
+[project]
+name = "x68pic"
+version = "2026.4.10"
+authors = [{ name="yumimint", email="i.yumimint@gmail.com" }]
+description = "PIC Image decoder, encoder."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "numpy",
+    "pillow"
+]
+
+[project.optional-dependencies]
+dev = [
+    "build",
+    "twine",
+]
+
+[project.scripts]
+x68pic = "x68pic.cli.main:main"
+
+[project.urls]
+Repository = "https://github.com/yumimint/x68pic"
+Issues = "https://github.com/yumimint/x68pic/issues"

@@ -1,0 +1,10 @@
+.hg/
+.hgignore
+*.pyc
+*.egg-info/
+build/
+.vscode/
+*.pic
+*.png
+*.jpg
+*.bmp
