@@ -1,6 +1,6 @@
 [project]
 name = "x68pic"
-version = "2026.4.10"
+version = "2026.4.16"
 authors = [{ name="yumimint", email="i.yumimint@gmail.com" }]
 description = "PIC Image decoder, encoder."
 readme = "README.md"
