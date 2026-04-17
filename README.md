@@ -4,9 +4,16 @@ x68pic は、シャープのレトロパソコン X68000 シリーズの標準�
 
 ## 特徴
 
-- X68k 全モード対応: 16 / 256 / 32768 (15bit) / 65536 (16bit) 色のすべてをサポート。
+- 全機種対応:
 
-- 高品質なエンコード: 24bit カラーなどの高色階調画像を 16/15/12/8bit へ変換する際、ディザリング（Dithering） を適用して階調を維持したまま変換可能です。
+    PICの仕様にある全機種(X68000, PC-88VA, FM-TOWNS, MAC, 汎用)をサポートしています。
+
+    ※XM6、[OPTPiX](https://www.webtech.co.jp/products/old_products.html)にて確認。
+
+- 高品質なエンコード:
+
+    24bit カラーなどの高色階調画像を 16/15/12/8bit へ変換する際、
+    ディザリング（Dithering） を適用して階調を維持したまま変換可能です。
 
 - エコシステム連携: numpy 配列を介して Pillow 等の主要ライブラリとシームレスに連携します。
 
@@ -72,6 +79,7 @@ def show(im):
         k = cv2.waitKey(-1)
         if k > 0:
             break
+    cv2.destroyWindow(winname)
     return k
 
 for path in Path(".").rglob("*.pic"):
@@ -84,8 +92,62 @@ for path in Path(".").rglob("*.pic"):
     except x68pic.PicError as e:
         print(f"{type(e).__name__}: {e}: {path}")
 
-cv2.destroyAllWindows()
 ```
+
+### x68pic コマンド
+
+Pillowがサポートしている各種画像形式とPICを相互に変換できます。
+`input`がPICならデコード、そうでなければエンコードします。（拡張子で判定）
+`-` を指定するとクリップボードを読み込みます。
+
+
+```sh
+$ x68pic -h
+usage: x68pic [-h] [--version] [-b BPP] [-t TYPE] [-m MODE] [-c COMMENT] [--x68fs] [--dither] [--show] [--force] input [output]
+```
+
+#### png -> pic
+
+```sh
+x68pic input.png output.pic
+```
+
+#### pic -> png
+
+```sh
+x68pic input.pic output.png
+```
+
+#### PIC画像を表示 (--show)
+
+```sh
+x68pic --show input.pic
+```
+
+エンコードするときに --show するとエンコード結果を表示します。
+
+#### PC-88VAの256色モードをディザリングありでエンコード
+
+```sh
+x68pic -t1 -b8 --dither foobar.bmp
+```
+
+#### PC-88VAの特殊256色モードでエンコード
+
+16bitカラーとして圧縮されてるが実は8bitカラーという形式です。
+`-m2`でモード2を指定します。
+
+```sh
+x68pic -t1 -b8 -m2 foobar.bmp
+```
+
+#### 1:1正方PICでエンコード
+
+```sh
+x68pic -t15 foobar.bmp
+```
+
+機種タイプを15(汎用)にすると1:1の正方PICになります。FM-TOWNS`-t2`も正方となります。
 
 ## ライセンス
 
