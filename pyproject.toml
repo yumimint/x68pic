@@ -24,6 +24,7 @@ dev = [
 
 [project.scripts]
 x68pic = "x68pic.cli.main:main"
+x68pic-lightning = "x68pic.cli.lightning:main"
 
 [project.urls]
 Repository = "https://github.com/yumimint/x68pic"
