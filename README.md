@@ -8,7 +8,8 @@ x68pic は、シャープのレトロパソコン X68000 シリーズの標準�
 
     PICの仕様にある全機種(X68000, PC-88VA, FM-TOWNS, MAC, 汎用)をサポートしています。
 
-    ※XM6、[OPTPiX](https://www.webtech.co.jp/products/old_products.html)にて確認。
+    ※当モジュールでエンコードしたPICを本家`pic.r`、`apicg.r`、[OPTPiX Snap](https://www.webtech.co.jp/products/old_products.html)にて確認しました。
+    X68以外の機種については「 *OPTPiXで読めたのだからたぶん大丈夫* 」 に依拠しております。(^^;)
 
 - 高品質なエンコード:
 
@@ -19,7 +20,7 @@ x68pic は、シャープのレトロパソコン X68000 シリーズの標準�
 
 ## インストール
 
-```bash
+```sh
 git clone https://github.com/yumimint/x68pic.git
 cd x68pic
 pip install .
@@ -27,7 +28,7 @@ pip install .
 
 または
 
-```bash
+```sh
 pip install git+https://github.com/yumimint/x68pic.git
 ```
 
@@ -60,7 +61,7 @@ with open("output.pic", "wb") as f:
 
 ### OpenCVを使った簡易ビュアー
 
-```Python
+```Python:picview.py
 from pathlib import Path
 
 import cv2
@@ -75,7 +76,8 @@ def show(im):
     cv2.imshow(winname, im)
     while True:
         if cv2.getWindowProperty(winname, cv2.WND_PROP_VISIBLE) < 1:
-            return ESCAPE
+            k = ESCAPE
+            break
         k = cv2.waitKey(-1)
         if k > 0:
             break
@@ -97,28 +99,38 @@ for path in Path(".").rglob("*.pic"):
 ### x68pic コマンド
 
 Pillowがサポートしている各種画像形式とPICを相互に変換できます。
-`input`がPICならデコード、そうでなければエンコードします。（拡張子で判定）
-`-` を指定するとクリップボードを読み込みます。
-
 
 ```sh
 $ x68pic -h
 usage: x68pic [-h] [--version] [-b BPP] [-t TYPE] [-m MODE] [-c COMMENT] [--x68fs] [--dither] [--show] [--force] input [output]
 ```
 
-#### png -> pic
+- `input`がPICならデコード、そうでなければエンコードします。（拡張子で判定）
+- `output`は省略できます。
+    その場合、`input`の拡張子を`.pic`あるいは`.png`としたファイル名を用います。以下の例ではカレントディレクトリに`hoge.png`が生成されます。
+
+    ```sh
+    x68pic dennouclub/garou/hoge.pic
+    ```
+
+- `input`に`-`を指定するとクリップボードを読み込みます。
+    ファイル名は`clipboard_#`となります。(#はタイムスタンプ)
+
+#### コマンド使用例
+
+##### png -> pic (エンコード)
 
 ```sh
 x68pic input.png output.pic
 ```
 
-#### pic -> png
+##### pic -> png (デコード)
 
 ```sh
 x68pic input.pic output.png
 ```
 
-#### PIC画像を表示 (--show)
+##### PIC画像を表示 (--show)
 
 ```sh
 x68pic --show input.pic
@@ -126,28 +138,62 @@ x68pic --show input.pic
 
 エンコードするときに --show するとエンコード結果を表示します。
 
-#### PC-88VAの256色モードをディザリングありでエンコード
+##### PC-88VAの256色モード、ディザリング適用してエンコード
 
 ```sh
 x68pic -t1 -b8 --dither foobar.bmp
 ```
 
-#### PC-88VAの特殊256色モードでエンコード
+##### PC-88VAの特殊256色モードでエンコード
 
-16bitカラーとして圧縮されてるが実は8bitカラーという形式です。
+一見16bitカラーだが実は8bitカラーという形式です。
 `-m2`でモード2を指定します。
 
 ```sh
 x68pic -t1 -b8 -m2 foobar.bmp
 ```
 
-#### 1:1正方PICでエンコード
+##### 正方(1:1)でエンコード
 
 ```sh
 x68pic -t15 foobar.bmp
 ```
 
-機種タイプを15(汎用)にすると1:1の正方PICになります。FM-TOWNS`-t2`も正方となります。
+以下の3タイプは正方(1:1)となります。
+
+- 汎用`-t15`、モード0`-m0`(※)
+- FM-TOWNS`-t2`
+- MAC`-t3`
+
+※ 未指定はモード0です。`-m1`でX68000のアスペクトになります。
+
+[PIC 拡張ヘッダ](http://retropc.net/x68000/software/graphics/pic/picheader.htm)を使って正方にする方法もあります。ただしOPTPiXは非対応のようです。（OPTPiX Snap 4.03.00-MP）
+
+```sh
+x68pic -C /MM/XSS: foobar.bmp
+```
+
+##### クリップボードからX68000用フルスクリーン画像を生成する (--x68fs)
+
+入力画像の縦横比を4:3に余白を追加して512x512へリサイズします。
+クリップボード入力と組み合わせると便利かもしれません。
+エンコード時のみ有効。
+
+```sh
+x68pic --x68fs --dither -
+```
+
+## 謝辞
+
+開発には以下の資料を参考にさせて頂きました。この場を借りて深く感謝申し上げます。
+
+- [PICフォーマット仕様書](https://www.vector.co.jp/soft/data/art/se003198.html)
+
+    いわずもがな
+
+- [GORRY's Homepage - X68Index](https://gorry.haun.org/x68index.html) apicgソースコード
+
+    機種タイプ15(汎用)におけるパレットのビット長の解釈について参考になりました。
 
 ## ライセンス
 
