@@ -170,7 +170,7 @@ x68pic -t15 foobar.bmp
 [PIC 拡張ヘッダ](http://retropc.net/x68000/software/graphics/pic/picheader.htm)を使って正方にする方法もあります。ただしOPTPiXは非対応のようです。（OPTPiX Snap 4.03.00-MP）
 
 ```sh
-x68pic -C /MM/XSS: foobar.bmp
+x68pic -c /MM/XSS: foobar.bmp
 ```
 
 ##### クリップボードからX68000用フルスクリーン画像を生成する (--x68fs)
