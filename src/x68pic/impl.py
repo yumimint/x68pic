@@ -84,6 +84,7 @@ def decode(
                        for _ in range(1 << hd.bpp)], dtype=np.uint32)
 
         aux_out["pal"] = pal
+        aux_out["pal_format"] = pal_format
 
     # ピクセルをデコード
     _decode_pixel(pixel, bs.read, _ColorIO("r", hd.bpp, bs.read))
