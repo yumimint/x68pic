@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 import io
 import sys
-from pathlib import Path
 import time
+from pathlib import Path
 
 from PIL import Image, ImageGrab
 
-from x68pic import MachineType, PicError, decode, encode
+from x68pic import Dither, MachineType, PicError, decode, encode
 
 
 def main():
@@ -27,13 +27,18 @@ def main():
         "-t",
         "--type",
         type=lambda s: MachineType(int(s)),
-        help="machine type 0:x68 1:88va 2:towns 3:mac 15:gp",
+        help="machine type ([0]:x68 1:88va 2:towns 3:mac 15:gp)",
     )
     parser.add_argument("-m", "--mode", type=int, help="specify mode")
     parser.add_argument("-c", "--comment", type=str, help="comment")
     parser.add_argument("--x68fs", action="store_true",
                         help="resize image for X68000 full screen")
-    parser.add_argument("--dither", action="store_true")
+    parser.add_argument("--dither",
+                        metavar=("N"),
+                        default=Dither.Bayer,
+                        type=lambda s: Dither(int(s)),
+                        help="Specify dither method (0:NONE, [1]:Bayer, 2:FloydSteinberg)",
+                        )
     parser.add_argument("--show", action="store_true")
     parser.add_argument(
         "--force",
