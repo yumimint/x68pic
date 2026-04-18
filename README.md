@@ -102,7 +102,7 @@ Pillowがサポートしている各種画像形式とPICを相互に変換で�
 
 ```sh
 $ x68pic -h
-usage: x68pic [-h] [--version] [-b BPP] [-t TYPE] [-m MODE] [-c COMMENT] [--x68fs] [--dither] [--show] [--force] input [output]
+usage: x68pic [-h] [--version] [-b BPP] [-t TYPE] [-m MODE] [-c COMMENT] [--x68fs] [--dither N] [--show] [--force] input [output]
 ```
 
 - `input`がPICならデコード、そうでなければエンコードします。（拡張子で判定）
@@ -138,10 +138,10 @@ x68pic --show input.pic
 
 エンコードするときに --show するとエンコード結果を表示します。
 
-##### PC-88VAの256色モード、ディザリング適用してエンコード
+##### PC-88VAの4096色モード
 
 ```sh
-x68pic -t1 -b8 --dither foobar.bmp
+x68pic -t1 -b12 foobar.bmp
 ```
 
 ##### PC-88VAの特殊256色モードでエンコード

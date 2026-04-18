@@ -6,7 +6,7 @@ from typing import Any, BinaryIO, Callable, Optional, Sequence, Union
 import numpy as np
 from PIL import Image
 
-from x68pic.tools import BitStream, decode_color, encode_color
+from x68pic.tools import BitStream, Dither, decode_color, encode_color
 
 
 class PicError(Exception):
@@ -133,7 +133,7 @@ def encode(
     comment: Optional[Union[str, bytes]] = None,
     type: Optional[Union[MachineType, int]] = None,
     mode: Optional[int] = None,
-    dither: bool = False,
+    dither: Optional[Dither] = None,
     pal_bits: int = 0,
 ):
     """画像をPIC形式でエンコードします

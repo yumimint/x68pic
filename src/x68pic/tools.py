@@ -1,13 +1,20 @@
 """PIC以外にも使えそうなモノ"""
 
+import enum
 import io
-from typing import BinaryIO, Union
+from typing import BinaryIO, Optional, Union
 
 import numpy as np
 
 
 class ReadError(RuntimeError):
     pass
+
+
+class Dither(enum.Enum):
+    NONE = 0
+    Bayer = 1
+    FloydSteinberg = 2
 
 
 class BitStream:
@@ -159,7 +166,9 @@ def decode_color(color: np.ndarray, format: str, *, order: str = "rgb") -> np.nd
 
 
 def encode_color(
-    im: np.ndarray, format: str, *, order: str = "rgb", dither=False
+    im: np.ndarray, format: str, *,
+    order: str = "rgb",
+    dither: Optional[Dither] = None,
 ) -> np.ndarray:
     """NumPy画像を任意のカラーコードへエンコードします
 
@@ -186,9 +195,17 @@ def encode_color(
 
     rgb = {ch: channels[order.index(ch)] for ch in "rgb"}
 
-    if dither and bits < 24:
+    if dither is not None and bits < 24:
+        # チャネル毎にビット数が違うケースを想定してグレイスケール版をチャネル毎に適用。
+        # ディザは前処理に任せようと考えたが断念したのも同じ理由。
+        dither_funcs = {
+            Dither.NONE: lambda arr, bits: arr,
+            Dither.Bayer: bayer_dither_grayscale,
+            Dither.FloydSteinberg: floyd_dither_grayscale,
+        }
+        f = dither_funcs[dither]
         for ch in "rgb":
-            rgb[ch] = dither_grayscale(rgb[ch], colorf[ch].bits)
+            rgb[ch] = f(rgb[ch], colorf[ch].bits)  # type: ignore
 
     dtype = np.uint32 if bits > 16 else (np.uint16 if bits > 8 else np.uint8)
 
@@ -212,7 +229,7 @@ def encode_color(
     return c
 
 
-def dither_grayscale(image: np.ndarray, bits: int) -> np.ndarray:
+def floyd_dither_grayscale(image: np.ndarray, bits: int) -> np.ndarray:
     """8bitグレースケール画像を任意のビット数に量子化し、ディザリングを適用する
 
     :param image: 入力画像 (np.uint8, 2次元配列)
@@ -260,3 +277,100 @@ def dither_grayscale(image: np.ndarray, bits: int) -> np.ndarray:
 
     # 範囲クリップしてuint8に戻す
     return np.clip(img, 0, 255).astype(np.uint8)
+
+
+def bayer_dither_grayscale(image: np.ndarray, bits: int, size: int = 4) -> np.ndarray:
+    """
+    Bayer マトリクスを使った高速ディザリング（Ordered Dithering）
+
+    :param image: 8bit グレースケール画像 (H, W)
+    :param bits: 出力ビット数 (1〜7)
+    :param size: Bayer マトリクスのサイズ（2, 4, 8）
+
+        - 2：粗いがコントラスト強め
+        - 4：一般的でバランス良い
+        - 8：滑らかだがパターンが見えやすい
+    """
+    if image.dtype != np.uint8:
+        raise ValueError("image must be uint8")
+    if image.ndim != 2:
+        raise ValueError("image must be grayscale (2D)")
+    if not (1 <= bits <= 7):
+        raise ValueError("bits must be between 1 and 7")
+
+    if size not in (2, 4, 8):
+        raise ValueError("size must be 2, 4, or 8")
+
+    # Bayer マトリクス生成
+    M = bayer_matrix(size).astype(np.float32)
+    M = (M + 0.5) / (size * size)  # 0〜1 のしきい値に正規化
+
+    H, W = image.shape
+
+    # 画像サイズにタイル状に展開
+    threshold = np.tile(M, (H // size + 1, W // size + 1))[:H, :W]
+
+    # 量子化ステップ
+    levels = 2**bits
+    step = 255 / (levels - 1)
+
+    # 正規化
+    norm = image.astype(np.float32) / 255.0
+
+    # しきい値比較
+    dithered = np.floor(norm * levels + threshold).clip(0, levels - 1)
+
+    # 0〜255 に戻す
+    return (dithered * step).astype(np.uint8)
+
+
+def bayer_matrix(n):
+    if n == 1:
+        return np.array([[0]])
+    prev = bayer_matrix(n // 2)
+    t = prev * 4
+    return np.block([
+        [t + 0, t + 2],
+        [t + 3, t + 1]
+    ])
+
+
+def bayer_dither_color(image: np.ndarray, bits: int, size: int = 4) -> np.ndarray:
+    """
+    Bayer マトリクスを使ったカラー画像の高速ディザリング（Ordered Dithering）
+
+    :param image: 入力画像 (H, W, 3) uint8
+    :param bits: 出力ビット数 (1〜7)
+    :param size: Bayer マトリクスのサイズ（2, 4, 8）
+    """
+    if image.dtype != np.uint8:
+        raise ValueError("image must be uint8")
+    if image.ndim != 3 or image.shape[2] != 3:
+        raise ValueError("image must be color (H, W, 3)")
+    if not (1 <= bits <= 7):
+        raise ValueError("bits must be between 1 and 7")
+
+    if size not in (2, 4, 8):
+        raise ValueError("size must be 2, 4, or 8")
+
+    M = bayer_matrix(size).astype(np.float32)
+    M = (M + 0.5) / (size * size)  # 0〜1 のしきい値に正規化
+
+    H, W, _ = image.shape
+
+    # 画像サイズにタイル状に展開
+    threshold = np.tile(M, (H // size + 1, W // size + 1))[:H, :W]
+
+    # 量子化レベル
+    levels = 2**bits
+    step = 255 / (levels - 1)
+
+    # 正規化
+    norm = image.astype(np.float32) / 255.0
+
+    # RGB 各チャンネルに同じ threshold を適用（Broadcast）
+    dithered = np.floor(
+        norm * levels + threshold[..., None]).clip(0, levels - 1)
+
+    # 0〜255 に戻す
+    return (dithered * step).astype(np.uint8)
