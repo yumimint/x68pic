@@ -67,7 +67,7 @@ def main_encode():
             raise ValueError("Image not found in clipboard")
         elif isinstance(im, list):
             im = Image.open(im[0])
-        args.input = Path(f"clipbpard_{int(time.time())}")
+        args.input = Path(f"clipboard_{int(time.time())}")
     else:
         im = Image.open(args.input)
 
