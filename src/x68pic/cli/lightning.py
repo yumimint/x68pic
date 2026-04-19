@@ -1,4 +1,5 @@
 import argparse
+import sys
 import time
 from pathlib import Path
 
@@ -18,25 +19,49 @@ class WindowClosed(Escape):
     pass
 
 
+WINNAME = "x68pic-lightning"
+
+
+def imshow(im):
+    cv2.imshow(WINNAME, im)
+    return waitKey()
+
+
+def setWindowTitle(s: str):
+    cv2.setWindowTitle(WINNAME, WINNAME + f": {s}")
+
+
+def waitKey(msec=1):
+    key = cv2.waitKey(msec)
+    # 一見するとキーを待つだけの簡単な関数、しかしその正体は！
+    # cv2.imshowを影で支える縁の下の力持ちなのです。
+    if key == 27:
+        raise Escape
+    if cv2.getWindowProperty(WINNAME, cv2.WND_PROP_VISIBLE) < 1:
+        raise WindowClosed
+    return key
+
+
 def pause(duration: float | None):
-    if duration is None:
-        def expired(): return False
+    key = -1
+    if duration is None or duration <= 0.0:
+        while True:
+            key = waitKey()
+            if key > 0:
+                break
+            time.sleep(0.1)
     else:
         expiry = time.time() + duration
-        def expired(): return time.time() >= expiry
-
-    while not expired():
-        key = cv2.waitKey(10)
-        if key == 27:
-            raise Escape
-        if key > 0:
-            break
-
+        while time.time() < expiry:
+            key = waitKey()
+            if key > 0:
+                break
+            time.sleep(0.1)
+    return key
 
 class decode_with_show:
     def __init__(self, step: float):
         self.step = step
-        self.visible = True
 
     def __call__(self, *args, **kwargs):
         if "aux_out" in kwargs:
@@ -48,6 +73,7 @@ class decode_with_show:
         setattr(x68pic.impl, "_decode_pixel", self.decode_pixel)
         try:
             self.skip = False
+            self.pause = False
             return x68pic.decode(*args, **kwargs)
         finally:
             setattr(x68pic.impl, "_decode_pixel", backup)
@@ -126,53 +152,78 @@ class decode_with_show:
         return decode_color(pal, format, order="bgr")[0]
 
     def show(self, pix: np.ndarray, clut: np.ndarray | None, finish=False):
-        if not finish and self.skip:
-            return
+        if not finish:
+            if self.skip:
+                return
+            if self.pause:
+                while waitKey() <= 0:
+                    time.sleep(0.1)
+                self.pause = False
+                return
 
         if clut is None:
             assert pix.dtype == np.uint32
             b, r, g, a = np.moveaxis(
-                pix.view(dtype=np.uint8).reshape(pix.shape + (4,)), -1, 0)
+                pix.view(dtype=np.uint8).reshape(pix.shape + (4,)), -1, 0
+            )
             im = np.dstack([b, g, r])
         else:
             im = clut[pix]
 
-        winname = __name__
-        cv2.imshow(winname, im)
-        key = cv2.waitKey(1)
-        if key == 27:
-            raise Escape
+        key = imshow(im)
         if key > 0:
-            self.skip = True
-        visible = cv2.getWindowProperty(winname, cv2.WND_PROP_VISIBLE) > 0
-        if not visible:
-            raise WindowClosed
+            if key == ord("p"):
+                self.pause = True
+            else:
+                self.skip = True
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("path", type=Path, nargs="*")
-    parser.add_argument("--step", type=float, default=1,
-                        help="specify lines per frame (>= 0.1)")
+    parser.add_argument(
+        "--step", type=float, default=1,
+        help="specify lines per frame (>= 0.1)",
+    )
     parser.add_argument(
         "--pause",
-        metavar="SEC", type=float, nargs="?", default=0,
-        help="After the image is displayed, wait for key input for SEC seconds.")
+        metavar="SEC",
+        type=float,
+        nargs="?",
+        help="After the image is displayed, wait for key input for SEC seconds.",
+    )
     args = parser.parse_args()
 
     if args.step and args.step < 0.1:
         raise ValueError(f"step must be >= 0.1, {args.step} given")
 
-    def view(pic: Path):
+    """
+    Windows環境でも以下のようにやりたいので明示的にLFに統一する (CRが邪魔になる)
+    ```sh
+    x68pic-lightning.exe d:/emu/x68 --pause | xargs cp -pv --target-directory=.
+    ```
+    """
+    stdout = open(sys.__stdout__.fileno(), 
+                mode=sys.__stdout__.mode, 
+                buffering=1, 
+                encoding=sys.__stdout__.encoding, 
+                errors=sys.__stdout__.errors, 
+                newline='\n', 
+                closefd=False)
+
+    def view(path: Path):
+        setWindowTitle(path.name)
         decode = decode_with_show(args.step)
         try:
-            with pic.open("rb") as f:
+            with path.open("rb") as f:
                 decode(f)
-            pause(args.pause)
+            # マークキー(M)が押されたらpathを標準出力する
+            if pause(args.pause) in [ord(c) for c in "Mm"]:
+                print(str(path).replace("\\", "/"), file=stdout)
         except Escape as e:
             raise e
         except Exception as e:
-            print(f"{type(e).__name__}: {e}")
+            print(f"{type(e).__name__}: {e}: {str(path)}", file=sys.stderr)
 
     try:
         for path in args.path:
@@ -185,7 +236,6 @@ def main():
         return
     finally:
         cv2.destroyAllWindows()
-
 
 if __name__ == "__main__":
     main()

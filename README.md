@@ -67,7 +67,19 @@ with open("output.pic", "wb") as f:
 `path`で指定したファイルを表示します。
 ディレクトリを指定すると配下の*.picを探し出して表示します。
 
-OpenCVを使っていますので別途インストールが必要です。（依存パッケージに含めていないので）
+![x68pic-lightning](https://raw.githubusercontent.com/yumimint/x68pic/refs/heads/feature-lightning/pic-lightning.jpg) [元画像](https://copilot.microsoft.com/imagine/UHQKECaEAQNBAnSGFjeRG)
+
+--pauseオプションのポーズ中に*mキー*を押すとそのファイルのパスを標準出力します。
+以下のような活用が可能です。
+
+```sh
+# コレクションの中から選んだ画像をカレントディレクトリへコピーする
+x68pic-lightning /path/to/collection --pause | xargs cp -pv --target-directory=.
+```
+
+遅すぎて焦れったいときは--stepを大きくするとよいです。
+
+依存モジュールに含めていないOpenCVを使っていますので、必要に応じてインストールしてください。
 
 ```shell
 pip install opencv-python
