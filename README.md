@@ -55,8 +55,8 @@ from PIL import Image
 img = Image.open("photo.jpg")
 
 with open("output.pic", "wb") as f:
-    # 15bit(32768色)モードでディザリングを適用してエンコード
-    x68pic.encode(f, img, 15, dither=True)
+    # 15bit(32768色)モードでエンコード
+    x68pic.encode(f, img, 15)
 ```
 
 ### OpenCVを使った簡易ビュアー
