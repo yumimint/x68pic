@@ -31,7 +31,7 @@ parser.add_argument(
 parser.add_argument("-m", "--mode", type=int, help="specify mode")
 parser.add_argument("-c", "--comment", type=str, help="comment")
 parser.add_argument("--reform", type=str, metavar="ORDER",
-                    help="specify image reform instructions")
+                    help="specify image reform directive")
 parser.add_argument("--dither",
                     metavar=("N"),
                     default=Dither.Bayer,

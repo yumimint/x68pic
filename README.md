@@ -59,51 +59,25 @@ with open("output.pic", "wb") as f:
     x68pic.encode(f, img, 15)
 ```
 
-### OpenCVを使った簡易ビュアー
+#### x68pic-lightning コマンド
 
-```Python:picview.py
-from pathlib import Path
+`usage: x68pic-lightning [-h] [--step STEP] [--pause [SEC]] [path ...]`
 
-import cv2
+簡易PICビューアです。名前の通り稲妻が走ります。
+`path`で指定したファイルを表示します。
+ディレクトリを指定すると配下の*.picを探し出して表示します。
 
-import x68pic
+OpenCVを使っていますので別途インストールが必要です。（依存パッケージに含めていないので）
 
-
-ESCAPE = 27
-
-def show(im):
-    winname = "picview"
-    cv2.imshow(winname, im)
-    while True:
-        if cv2.getWindowProperty(winname, cv2.WND_PROP_VISIBLE) < 1:
-            k = ESCAPE
-            break
-        k = cv2.waitKey(-1)
-        if k > 0:
-            break
-    cv2.destroyWindow(winname)
-    return k
-
-for path in Path(".").rglob("*.pic"):
-    try:
-        with path.open("rb") as f:
-            im = x68pic.decode(f, "bgr")
-        k = show(im)
-        if k == ESCAPE:
-            break
-    except x68pic.PicError as e:
-        print(f"{type(e).__name__}: {e}: {path}")
-
+```shell
+pip install opencv-python
 ```
 
 ### x68pic コマンド
 
-Pillowがサポートしている各種画像形式とPICを相互に変換できます。
+`sage: x68pic.exe [-h] [--version] [-b BPP] [-t TYPE] [-m MODE] [-c COMMENT] [--reform ORDER] [--dither N] [--show] [--force] input [output]`
 
-```sh
-$ x68pic -h
-usage: x68pic [-h] [--version] [-b BPP] [-t TYPE] [-m MODE] [-c COMMENT] [--x68fs] [--dither N] [--show] [--force] input [output]
-```
+Pillowがサポートしている各種画像形式とPICを相互に変換できます。
 
 - `input`がPICならデコード、そうでなければエンコードします。（拡張子で判定）
 - `output`は省略できます。
@@ -115,6 +89,21 @@ usage: x68pic [-h] [--version] [-b BPP] [-t TYPE] [-m MODE] [-c COMMENT] [--x68f
 
 - `input`に`-`を指定するとクリップボードを読み込みます。
     ファイル名は`clipboard_#`となります。(#はタイムスタンプ)
+
+#### オプション
+
+##### --refrom ORDER
+
+画像編集ツールを立ち上げるまでもない、ちょっとした簡単な加工ができます。
+クリップボード入力と組み合わせると便利かもしれません。
+
+以下のディレクティブを指定できます。カンマ区切りで複数指定可。
+
+| 機能 | ディレクティブ | 例 | 説明 |
+| ---- | ---- | ---- | ---- |
+| 余白追加 | 横:縦#色 | `3:2#fff` | 比率が横:縦になるよう余白を追加します。 |
+| リサイズ | 横x縦 | `320x240` | 指定サイズへリサイズします。 |
+| 長辺サイズ制限 | L長さ | `L256` | 大きい画像を指定サイズへ収めます。(縦横比維持) |
 
 #### コマンド使用例
 
@@ -159,13 +148,13 @@ x68pic -t1 -b8 -m2 foobar.bmp
 x68pic -t15 foobar.bmp
 ```
 
-以下の3タイプは正方(1:1)となります。
+以下のタイプは正方(1:1)となります。
 
-- 汎用`-t15`、モード0`-m0`(※)
-- FM-TOWNS`-t2`
-- MAC`-t3`
-
-※ 未指定はモード0です。`-m1`でX68000のアスペクトになります。
+| Type | option |
+| ---- | ---- |
+| 汎用 | `-t15` |
+| FM-TOWNS | `-t2` |
+| MAC | `-t3` |
 
 [PIC 拡張ヘッダ](http://retropc.net/x68000/software/graphics/pic/picheader.htm)を使って正方にする方法もあります。ただしOPTPiXは非対応のようです。（OPTPiX Snap 4.03.00-MP）
 
@@ -173,14 +162,12 @@ x68pic -t15 foobar.bmp
 x68pic -c /MM/XSS: foobar.bmp
 ```
 
-##### クリップボードからX68000用フルスクリーン画像を生成する (--x68fs)
+##### クリップボードからX68000用フルスクリーン画像を生成する (--reform)
 
 入力画像の縦横比を4:3に余白を追加して512x512へリサイズします。
-クリップボード入力と組み合わせると便利かもしれません。
-エンコード時のみ有効。
 
 ```sh
-x68pic --x68fs --dither -
+x68pic --reform 4:3,512x512 -
 ```
 
 ## 謝辞
