@@ -58,17 +58,41 @@ def decode(
         if len(type) == 3 and set(type) == set("rgb"):
             order = type
         elif type == "pil":
-            order = "rgb"
+            pass
         else:
             raise ValueError(f"{type} is not a valid type")
 
-    aux_out = aux_out if aux_out is not None else {}
-
     bs = BitStream(buf)
     hd = _read_header(bs)
-    aux_out["header"] = hd
     hd_size = bs.size
+    aux_out = aux_out if aux_out is not None else {}
+    aux_out["header"] = hd
+    pixel, format, pal, pal_format = _decode_body(hd, bs, aux_out)
+    aux_out["read_bits"] = (hd_size, bs.size - hd_size)
 
+    if type is None:
+        return None
+
+    im: IMG
+    if type == "pil":
+        if pal is None:
+            im = decode_color(pixel, format, order="rgb")
+            im = Image.fromarray(im, mode="RGB")
+        else:
+            im = Image.fromarray(pixel, mode="P")
+            clut = decode_color(pal, pal_format, order="rgb")
+            im.putpalette(clut[0].flat)
+    else:  # NumPy
+        if pal is None:
+            im = decode_color(pixel, format, order=order)
+        else:
+            clut = decode_color(pal, pal_format, order=order)
+            im = clut[0][pixel]
+
+    return im
+
+
+def _decode_body(hd, bs, aux_out):
     dtype = np.uint8 if hd.bpp <= 8 else (
         np.uint16 if hd.bpp <= 16 else np.uint32)
     pixel = np.zeros((hd.height, hd.width), dtype=dtype)
@@ -82,45 +106,34 @@ def decode(
         pal_format = "g5r5b5i1" if m == 0 else f"g{m}r{m}b{m}"
         pal = np.array([bs.read(n)
                        for _ in range(1 << hd.bpp)], dtype=np.uint32)
-
         aux_out["pal"] = pal
         aux_out["pal_format"] = pal_format
+    else:
+        pal, pal_format = None, None
 
     # ピクセルをデコード
     _decode_pixel(pixel, bs.read, _ColorIO("r", hd.bpp, bs.read))
-    aux_out["read_bits"] = (hd_size, bs.size - hd_size)
 
-    # PC-88VAの「一見64K色、実は256色」モード
-    if hd.mode & 2 and hd.type == MachineType.PC88VA and hd.bpp == 16:
-        pixel = pixel.astype("<u2").view(dtype=np.uint8)
-        pixel = pixel.reshape((hd.height * 2, hd.width))
-        format = _FORMATS[hd.type][8]
-        # modeみて判断すればいいので小細工はコメントアウト
-        # meta = hd._asdict()
-        # meta["bpp"] = 8
-        # meta["mode"] &= -2
-        # aux_out["header"] = PICH(*meta)
+    if hd.type == MachineType.PC88VA:
+        # PC-88VAの「一見64K色、実は256色」モード
+        mode2 = hd.mode & 2 and hd.bpp == 16
+        if mode2:
+            pixel = pixel.astype("<u2").view(dtype=np.uint8)
+            pixel = pixel.reshape((hd.height * 2, hd.width))
+            format = _FORMATS[hd.type][8]
+
+        if hd.bpp == 8 or mode2:
+            # パレットを作ってインデックスカラーにしちゃう
+            pal = np.array(range(256), dtype=np.uint8)
+            pal_format = format
+            format = "index"
 
     aux_out["pixel"] = pixel
+    aux_out["pal"] = pal
+    aux_out["pal_format"] = pal_format
+    aux_out["format"] = format
 
-    if type is None:
-        return None
-
-    im: IMG
-    if format == "index":
-        if type == "pil":
-            im = Image.fromarray(pixel, mode="P")
-            clut = decode_color(pal, pal_format, order="rgb")
-            im.putpalette(clut[0].flat)
-        else:
-            clut = decode_color(pal, pal_format, order=order)
-            im = clut[0][pixel]  # ファンシーインデックス
-    else:
-        im = decode_color(pixel, format, order=order)
-        if type == "pil":
-            im = Image.fromarray(im)
-
-    return im
+    return pixel, format, pal, pal_format
 
 
 def encode(
