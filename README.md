@@ -67,7 +67,7 @@ with open("output.pic", "wb") as f:
 `path`で指定したファイルを表示します。
 ディレクトリを指定すると配下の*.picを探し出して表示します。
 
-![x68pic-lightning](https://raw.githubusercontent.com/yumimint/x68pic/refs/heads/feature-lightning/pic-lightning.jpg) [元画像](https://copilot.microsoft.com/imagine/UHQKECaEAQNBAnSGFjeRG)
+![x68pic-lightning](https://raw.githubusercontent.com/yumimint/x68pic/refs/heads/develop/pic-lightning.jpg) [元画像](https://copilot.microsoft.com/imagine/UHQKECaEAQNBAnSGFjeRG)
 
 --pauseオプションのポーズ中に*mキー*を押すとそのファイルのパスを標準出力します。
 以下のような活用が可能です。
