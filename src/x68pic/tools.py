@@ -7,10 +7,6 @@ from typing import BinaryIO, Optional, Union
 import numpy as np
 
 
-class ReadError(RuntimeError):
-    pass
-
-
 class Dither(enum.Enum):
     NONE = 0
     Bayer = 1
@@ -47,9 +43,7 @@ class BitStream:
         if req_bytes:
             blob = self.buf.read(req_bytes)
             if len(blob) != req_bytes:
-                raise ReadError(
-                    f"End of file reached. Failed to read required {req_bytes} bytes."
-                )
+                raise EOFError(f"Failed to read required {req_bytes} bytes.")
             value = int.from_bytes(blob)
             self.temp += f"{value:0{req_bytes * 8}b}"
         self.size += bits
