@@ -43,8 +43,10 @@ def waitKey(msec=1):
 
 
 def pause(duration: float | None):
+    # duration==-1  --pause未指定 (ポーズしない)
+    # duration==None 引数無し--pause (時間無制限)
     key = -1
-    if duration is None or duration <= 0.0:
+    if duration is None:
         while True:
             key = waitKey()
             if key > 0:
@@ -189,6 +191,7 @@ def main():
         "--pause",
         metavar="SEC",
         type=float,
+        default=-1,
         nargs="?",
         help="After the image is displayed, wait for key input for SEC seconds.",
     )
